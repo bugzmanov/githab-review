@@ -1,3 +1,17 @@
+
+Purpose:
+
+
+To make code-review in IDE
+
+Steps it does:
+
+1) Fetches origin
+2) Creates diff between branches(head and base of pull request) 
+3) checs out origin/base branch
+4) apply patch 
+
+
  
 Installation
 
@@ -14,7 +28,7 @@ In clean working directory
 
 ```
 github-review <github pull request http url>
-``
+```
 
 
 
