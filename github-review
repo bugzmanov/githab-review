@@ -1,0 +1,74 @@
+#!/usr/bin/python
+
+import re
+import getpass
+import subprocess
+import sys
+from github import Github, GithubException
+from sh import git
+
+def dump(obj):
+    for attr in dir(obj):
+        if hasattr( obj, attr ):
+            print( "obj.%s = %s" % (attr, getattr(obj, attr)))
+
+def parse_github_url(url):
+    m = re.search(".*github.com/(.+)/(.+)/pull/(\d+).*", url)
+    return {"owner": m.group(1), "repo": m.group(2), "number": int(m.group(3))}
+
+def parse_origin_git(git_url):
+    m = re.search(".*github.com:(.+)/(.+)\.", git_url)
+    return {"owner": m.group(1), "repo": m.group(2)}
+
+
+if (len(sys.argv) == 1):
+    print ("Usage: github-review <pull-request-github-url>")
+    exit(1)
+
+origin_git = git.config("--get", "remote.origin.url")
+origin = parse_origin_git(origin_git.split('\n', 1)[0])
+
+pull_request_url = sys.argv[1]
+pull = parse_github_url(pull_request_url)
+
+if pull["owner"] != origin["owner"] or pull["repo"] != origin["repo"]:
+    print "Pull request {0} is not related to  origin repo {1}".format(pull_request_url, origin_git)
+    exit(1)
+
+status = git.status("-s")
+if status.count(" M ") != 0:
+    print("Working directory contains modified files, please stash your changes before starting review")
+    exit(1)
+
+
+
+user = raw_input("Github username [%s]: " % getpass.getuser())
+if not user:
+    user = getpass.getuser()
+password = getpass.getpass()
+
+g = Github(user, password)
+
+try:
+    owner=g.get_user(pull['owner'])
+except GithubException:
+    owner = g.get_organization(pull['owner'])
+
+pull_request = owner.get_repo(pull['repo']).get_pull(pull['number'])
+
+base =  pull_request.base.ref
+
+head = pull_request.head.ref
+
+subprocess.check_output(["git", "fetch", "origin"])
+
+git.checkout("origin/"+head)
+
+var = subprocess.check_output(["git", "format-patch", "--stdout", "origin/" + base])
+
+with open("code_review.patch", "w") as out:
+    out.write(var)
+
+git.checkout("origin/"+base)
+git.apply("code_review.patch")
+
