@@ -1,11 +1,12 @@
  
 Installation
 
-# git clone https://github.com/bugzmanov/github-review
-# cd github-review
-# sudo ./install-deps.sh
-# sudo python setup.py install
-
+```
+git clone https://github.com/bugzmanov/github-review
+cd github-review
+sudo ./install-deps.sh
+sudo python setup.py install
+```
 
 Usage
 
